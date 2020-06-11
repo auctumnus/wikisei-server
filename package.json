@@ -1,0 +1,28 @@
+{
+  "name": "wikisei-server",
+  "version": "0.1.0",
+  "description": "Server for Wikisei",
+  "main": "src/index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "lint": "eslint",
+    "start": "node src/index.js"
+  },
+  "author": "auctumnus",
+  "license": "ISC",
+  "dependencies": {
+    "@hapi/joi": "^17.1.1",
+    "better-sqlite3": "^7.0.1",
+    "body-parser": "^1.19.0",
+    "dompurify": "^2.0.11",
+    "express": "^4.17.1",
+    "express-history-api-fallback": "^2.2.1",
+    "marked": "^1.1.0",
+    "slugify": "^1.4.0"
+  },
+  "devDependencies": {
+    "eslint": "^7.2.0",
+    "eslint-plugin-mocha": "^7.0.1",
+    "mocha": "^7.2.0"
+  }
+}
