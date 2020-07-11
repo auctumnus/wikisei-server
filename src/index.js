@@ -1,3 +1,4 @@
+'use strict'
 /* Starts the Wikisei server. */
 
 const bodyparser = require('body-parser')

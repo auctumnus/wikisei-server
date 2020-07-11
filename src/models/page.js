@@ -1,3 +1,4 @@
+'use strict'
 /* Defines the model for pages. */
 
 const sqlite = require('better-sqlite3')

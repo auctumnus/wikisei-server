@@ -1,3 +1,4 @@
+'use strict'
 /* Defines the controller for pages. */
 
 const slugify = require('slugify')
