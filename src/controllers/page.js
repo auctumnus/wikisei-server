@@ -16,19 +16,19 @@ const cleanTagString = tags => {
              || null // If it's an empty array, just send back null
 }
 
-router.param('page_name', (req, _res, next) => {
+router.param('page_name', (req, res, next) => {
   // Get the page from the passed name
   const {result, err} = page.get(req.params.page_name)
   // If there's been an error, send 500
   if(err) {
-    next(500)
+    res.sendStatus(500)
     // If we have a result, continue along the router chain
   } else if (result) {
     req.result = result
     next()
     // Otherwise, there's no result and no error, so the page doesn't exist
   } else {
-    next(404)
+    res.sendStatus(404)
   }
 })
 
@@ -36,19 +36,37 @@ router.route('/:page_name')
   // Send the result we got out of the database
   .get((req, res) => res.send(req.result))
   // You can't POST to a resource that already exists, that's not RESTful
-  .post((_req, _res, next) => next(405))
+  .post((_req, res) => res.sendStatus(405))
   // Unimplemented
-  .put((_req, _res, next) => next(501))
-  .patch((_req, _res, next) => next(501))
-  .delete((_req, _res, next) => next(501))
+  .put((_req, res) => res.sendStatus(501))
+  .patch((_req, res) => res.sendStatus(501))
+  .delete((_req, res) => res.sendStatus(501))
 
 router.route('/')
-  // Unimplemented
-  .get((_req, _res, next) => next(501))
+  // List
+  .get((req, res) => {
+    let offset = 0
+    if(req.query.offset) {
+      offset = req.query.offset
+    }
+    const {err, result} = page.list(offset)
+    if (err) {
+      console.error(err)
+      res.sendStatus(500)
+    } else if (result) {
+      console.log(result)
+      res.send(result)
+    } else {
+      res.sendStatus(204)
+    }
+  })
+  // New
   .post((req, res) => {
     // First, slugify any name that might be passed, so that it'll pass
     // schema validation
+    let displayName
     if (req.body.name) {
+      displayName = req.body.name
       req.body.name = slugify(req.body.name.trim(), {lower: true}).slice(0, 20)
     }
 
@@ -58,8 +76,13 @@ router.route('/')
     // the user, and send a 400 code along with a description of the error
     if (error) {
       res.status(400)
-      res.send(error.annotate(true))
-      console.error(error)
+      res.send({
+        error: true,
+        path: error.path,
+        message: error.message,
+        type: error.type,
+        annotation: error.annotate(true)
+      })
     } else {
       // Check if a page already exists under this name
       const existsResult = page.exists(value.name)
@@ -81,13 +104,14 @@ router.route('/')
       // Send the page to the database
       const creationResult = page.new(
         value.name,
+        dompurify.sanitize(displayName),
         value.markdown,
         marked(value.markdown, {
           sanitizer: dompurify.sanitize
         }),
         Date.now(),
         Date.now(),
-        value.tags
+        dompurify.sanitize(value.tags)
         )
       // If there's an error in the process, send 500
       if (creationResult.err) {
@@ -97,14 +121,14 @@ router.route('/')
       } else {
         res.status(201)
         res.send({
-          name: creationResult.name
+          uri: creationResult.slug
         })
       }
     }
   })
   // Unimplemented
-  .put((_req, _res, next) => next(501))
-  .patch((_req, _res, next) => next(501))
-  .delete((_req, _res, next) => next(501))
+  .put((_req, res) => res.sendStatus(501))
+  .patch((_req, res) => res.sendStatus(501))
+  .delete((_req, res) => res.sendStatus(501))
 
 module.exports = router

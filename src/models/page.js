@@ -11,7 +11,7 @@ module.exports = {
   exists (name) {
     let result
     try {
-      result = db.prepare('SELECT EXISTS (SELECT 1 FROM pages WHERE name = $name) AS "exists"').get({name})
+      result = db.prepare('SELECT EXISTS (SELECT 1 FROM pages WHERE slug = $name) AS "exists"').get({name})
     } catch(err) {
       return {err}
     }
@@ -20,21 +20,29 @@ module.exports = {
   get (name) {
     let result
     try {
-      result = db.prepare('SELECT * FROM pages WHERE name = $name').get({name})
+      result = db.prepare('SELECT * FROM pages WHERE slug = $name').get({name})
+    } catch (err) {
+      return {err}
+    }
+    return {result}
+  },
+  list (offset) {
+    let result
+    try {
+      result = db.prepare('SELECT * FROM pages LIMIT 10 OFFSET $offset').get({offset})
     } catch (err) {
       return {err}
     }
     return {result}
   },
   // Doesn't perform any checking, do that in the controller
-  new (name, markdown, html, created, updated, tags) {
+  new (slug, name, markdown, html, created, updated, tags) {
     try {
-      db.prepare('INSERT INTO pages (name, markdown, html, created, updated, tags) VALUES ($name, $markdown, $html, $created, $updated, $tags)').run({name, markdown, html, created, updated, tags})
+      db.prepare('INSERT INTO pages (slug, name, markdown, html, created, updated, tags) VALUES ($slug, $name, $markdown, $html, $created, $updated, $tags)').run({slug, name, markdown, html, created, updated, tags})
     } catch (err) {
       return {err}
     }
-    console.log(name)
-    return {name}
+    return {slug}
   },
   /* The tags part of the object has to go through extra handling - namely */
   /* it must be a string of tags separated by commas, e.g. "a,b,c" is      */
