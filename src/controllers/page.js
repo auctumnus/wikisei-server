@@ -3,18 +3,27 @@
 
 const slugify = require('slugify')
 const marked = require('marked')
-const dompurify = require('dompurify')
+const sanitizeHTML = require('sanitize-html')
 const express = require('express')
 const router = express.Router()
-
 const page = require('../models/page')
+const plugin = require('../plugin')
+
+const sanitizeOptions = {
+  allowedTags: [],
+  allowedAttributes: {},
+  disallowedTagsMode: 'discard'
+}
+
+const sanitize = dirty => sanitizeHTML(dirty, sanitizeOptions)
 
 const cleanTagString = tags => {
-  return tags.split(',') // Make it into an array
-             .map(val => val.trim()) // Trim spaces
+  return tags.split(',')                // Make it into an array
+             .map(val => val.trim())    // Trim spaces
              .filter(val => val !== '') // Get rid of empty tags
-             .join(',') // Make it back into a string
-             || null // If it's an empty array, just send back null
+             .join(',')                 // Make it back into a string
+             || null                    // If it's an empty array, just 
+                                        // send back null
 }
 
 router.param('page_name', (req, res, next) => {
@@ -62,7 +71,7 @@ router.route('/')
     }
   })
   // New
-  .post((req, res) => {
+  .post(async (req, res) => {
     // First, slugify any name that might be passed, so that it'll pass
     // schema validation
     let displayName
@@ -97,22 +106,21 @@ router.route('/')
         console.error(existsResult.err)
         return undefined
       }
-
       // Clean up the tags if necessary
       if (value.tags) {
         value.tags = cleanTagString(value.tags)
       }
+      // Render article
+      const rendered = await plugin.renderText(marked(sanitize(value.markdown)))
       // Send the page to the database
       const creationResult = page.new(
         value.name,
-        dompurify.sanitize(displayName),
+        sanitize(displayName),
         value.markdown,
-        marked(value.markdown, {
-          sanitizer: dompurify.sanitize
-        }),
+        rendered.text,
         Date.now(),
         Date.now(),
-        dompurify.sanitize(value.tags)
+        sanitize(value.tags)
         )
       // If there's an error in the process, send 500
       if (creationResult.err) {
@@ -121,9 +129,16 @@ router.route('/')
       // Otherwise, send 201 Created with the name of the created page
       } else {
         res.status(201)
-        res.send({
-          uri: creationResult.slug
-        })
+        if(rendered.errors) {
+          res.send({
+            uri: creationResult.slug,
+            pluginErr: rendered.errors
+          })
+        } else {
+          res.send({
+            uri: creationResult.slug
+          })
+        }
       }
     }
   })
