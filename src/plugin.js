@@ -93,7 +93,8 @@ const renderText = async (text) => {
     const { pluginName, params } = parsePluginCall(match[0])
     const rendered = await callPlugin(pluginName, params)
     if(rendered.err) {
-      errors.append(rendered.err)
+      errors.push(rendered.err)
+      text = text.replace(match[0], `<span class="plugin-error">Error rendering plugin: ${rendered.err}</span>`)
     } else {
       text = text.replace(match[0], rendered.data)
     }
