@@ -99,7 +99,7 @@ const renderText = async (text) => {
       text = text.replace(match[0], rendered.data)
     }
   }
-  return { text, errors }
+  return { text, pluginErrors: errors }
 }
 
 module.exports = {

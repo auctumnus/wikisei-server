@@ -8,6 +8,7 @@ const express = require('express')
 const router = express.Router()
 const page = require('../models/page')
 const plugin = require('../plugin')
+const render = require('../render')
 
 const sanitizeOptions = {
   allowedTags: [],
@@ -110,29 +111,39 @@ router.route('/')
       if (value.tags) {
         value.tags = cleanTagString(value.tags)
       }
+      
       // Render article
-      const rendered = await plugin.renderText(marked(sanitize(value.markdown)))
+      const rendered = await render.tryRender(value.markdown)
+
       // Send the page to the database
-      const creationResult = page.new(
-        value.name,
-        sanitize(displayName),
-        value.markdown,
-        rendered.text,
-        Date.now(),
-        Date.now(),
-        sanitize(value.tags)
-        )
+      let creationResult
+      if(!rendered.err) {
+        const creationResult = page.new(
+          value.name,
+          sanitize(displayName),
+          value.markdown,
+          rendered.text,
+          Date.now(),
+          Date.now(),
+          sanitize(value.tags)
+          )
+      }
+
       // If there's an error in the process, send 500
-      if (creationResult.err) {
+      if (creationResult && creationResult.err) {
         res.sendStatus(500)
         console.error(creationResult.err)
       // Otherwise, send 201 Created with the name of the created page
       } else {
         res.status(201)
-        if(rendered.errors) {
+        if(rendered.pluginErrors) {
           res.send({
             uri: creationResult.slug,
-            pluginErr: rendered.errors
+            pluginErr: rendered.pluginErrors
+          })
+        } else if(rendered.err) {
+          res.send({
+            err: rendered.err
           })
         } else {
           res.send({

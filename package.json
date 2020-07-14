@@ -20,6 +20,7 @@
     "express-history-api-fallback": "^2.2.1",
     "lru-cache": "^6.0.0",
     "marked": "^1.1.0",
+    "p-any": "^3.0.0",
     "sanitize-html": "^1.27.0",
     "slugify": "^1.4.0"
   },
